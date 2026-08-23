@@ -146,6 +146,34 @@ function doPost(e) {
       return jsonResponse_({ ok: true });
     }
 
+    if (action === "reorder") {
+      const orderIds = (body.order || []).map(String);
+      const data = sheet.getDataRange().getValues();
+      const rowsById = {};
+      const extraRows = [];
+      for (let i = 1; i < data.length; i++) {
+        if (!data[i][0]) continue;
+        rowsById[String(data[i][0])] = data[i];
+      }
+      const mentioned = {};
+      const newRows = [];
+      orderIds.forEach(function (id) {
+        if (rowsById[id]) {
+          newRows.push(rowsById[id]);
+          mentioned[id] = true;
+        }
+      });
+      // 並び替えリストに含まれていない行があれば末尾に残す（安全策）
+      for (let i = 1; i < data.length; i++) {
+        const id = String(data[i][0]);
+        if (data[i][0] && !mentioned[id]) newRows.push(data[i]);
+      }
+      if (newRows.length > 0) {
+        sheet.getRange(2, 1, newRows.length, HEADERS.length).setValues(newRows);
+      }
+      return jsonResponse_({ ok: true });
+    }
+
     return jsonResponse_({ ok: false, error: "unknown_action" });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err) });

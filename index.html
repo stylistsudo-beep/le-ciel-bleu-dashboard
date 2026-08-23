@@ -80,6 +80,42 @@
   .lock-card p{margin:0 0 20px; font-size:13px; color:var(--text-sub);}
   .lock-card input{width:100%; text-align:center; font-size:16px; padding:10px; margin-bottom:12px; box-sizing:border-box;}
   .lock-error{color:var(--danger); font-size:12px; min-height:16px; margin-bottom:8px;}
+
+  .password-wrap{position:relative;}
+  .password-wrap input{padding-right:40px;}
+  .password-toggle{
+    position:absolute;
+    right:2px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:6px;
+    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-sub);
+    border-radius:6px;
+    z-index:1;
+  }
+  .password-toggle:hover{color:var(--accent); background:var(--accent-soft);}
+  .password-toggle svg{width:18px; height:18px; display:block;}
+  .lock-card .password-wrap input{margin-bottom:0;}
+  .lock-card .password-wrap{margin-bottom:12px;}
+
+  /* ブラウザ標準のパスワード表示・自動入力アイコンを無効化し、独自のトグルボタンとの重なりを防ぐ */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear{ display:none; }
+  input[type="password"]::-webkit-credentials-auto-fill-button{
+    visibility:hidden; display:none !important; pointer-events:none; position:absolute; right:0;
+  }
+  input[type="password"]::-webkit-textfield-decoration-container{ display:none; }
+
+  .card[draggable="true"]{cursor:grab;}
+  .card.dragging{opacity:0.4;}
+  .card.drag-over{box-shadow:0 -3px 0 0 var(--accent);}
   .btn{
     border:none;
     border-radius:8px;
@@ -335,7 +371,10 @@
     <h2>🔒 LE CIEL BLEU ダッシュボード</h2>
     <p>パスワードを入力してください</p>
     <form id="lockForm">
-      <input type="password" id="lockPasswordInput" placeholder="パスワード" autocomplete="current-password" required>
+      <div class="password-wrap">
+        <input type="password" id="lockPasswordInput" placeholder="パスワード" autocomplete="off" required>
+        <button type="button" class="password-toggle" id="lockPasswordToggle" aria-label="パスワードを表示"></button>
+      </div>
       <div class="lock-error" id="lockError"></div>
       <button type="submit" class="btn btn-primary" style="width:100%;">開く</button>
     </form>
@@ -551,7 +590,10 @@
     </div>
     <div class="field">
       <label>パスワード（Apps Script側で設定している場合）</label>
-      <input type="password" id="syncTokenInput" placeholder="パスワード">
+      <div class="password-wrap">
+        <input type="password" id="syncTokenInput" placeholder="パスワード" autocomplete="off">
+        <button type="button" class="password-toggle" id="syncTokenToggle" aria-label="パスワードを表示"></button>
+      </div>
     </div>
     <div class="import-summary" id="syncTestResult"></div>
     <div class="modal-actions">
@@ -641,18 +683,7 @@ function render(){
     return true;
   });
 
-  // Sort: overdue first, then soon, then by date, then no-date last
-  filtered.sort((a,b) => {
-    const rank = st => st === "overdue" ? 0 : st === "soon" ? 1 : 2;
-    const ra = rank(dateStatus(a.nextActionDate));
-    const rb = rank(dateStatus(b.nextActionDate));
-    if(ra !== rb) return ra - rb;
-    if(!a.nextActionDate && !b.nextActionDate) return 0;
-    if(!a.nextActionDate) return 1;
-    if(!b.nextActionDate) return -1;
-    return a.nextActionDate.localeCompare(b.nextActionDate);
-  });
-
+  // 並び順はドラッグ&ドロップで手動設定（stores配列の並びをそのまま使用）
   countLabel.textContent = `${filtered.length} / ${stores.length} 件表示`;
 
   grid.innerHTML = "";
@@ -662,6 +693,8 @@ function render(){
     const ds = dateStatus(s.nextActionDate);
     const card = document.createElement("div");
     card.className = "card" + (ds ? ` ${ds}` : "");
+    card.draggable = true;
+    card.dataset.id = s.id;
     card.innerHTML = `
       <div class="card-top">
         <div class="card-name">${escapeHtml(s.name)}</div>
@@ -688,6 +721,58 @@ function render(){
   grid.querySelectorAll("[data-edit]").forEach(btn => {
     btn.addEventListener("click", () => openModal(btn.dataset.edit));
   });
+
+  wireDragAndDrop();
+}
+
+let dragSourceId = null;
+
+function wireDragAndDrop(){
+  grid.querySelectorAll(".card").forEach(card => {
+    card.addEventListener("dragstart", () => {
+      dragSourceId = card.dataset.id;
+      card.classList.add("dragging");
+    });
+    card.addEventListener("dragend", () => {
+      card.classList.remove("dragging");
+      grid.querySelectorAll(".card").forEach(c => c.classList.remove("drag-over"));
+    });
+    card.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if(card.dataset.id === dragSourceId) return;
+      card.classList.add("drag-over");
+    });
+    card.addEventListener("dragleave", () => {
+      card.classList.remove("drag-over");
+    });
+    card.addEventListener("drop", (e) => {
+      e.preventDefault();
+      card.classList.remove("drag-over");
+      const targetId = card.dataset.id;
+      if(!dragSourceId || dragSourceId === targetId) return;
+      reorderStores(dragSourceId, targetId);
+      dragSourceId = null;
+    });
+  });
+}
+
+async function reorderStores(sourceId, targetId){
+  const fromIdx = stores.findIndex(s => s.id === sourceId);
+  if(fromIdx === -1) return;
+  const [moved] = stores.splice(fromIdx, 1);
+  const toIdx = stores.findIndex(s => s.id === targetId);
+  stores.splice(toIdx === -1 ? stores.length : toIdx, 0, moved);
+  saveStores(stores);
+  render();
+
+  if(getGasUrl()){
+    try{
+      const result = await postToSheet("reorder", { order: stores.map(s => s.id) });
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+    }catch(err){
+      setSyncStatus("並び替えの同期に失敗しました：" + err.message, "error");
+    }
+  }
 }
 
 function escapeHtml(str){
@@ -879,6 +964,24 @@ const lockForm = document.getElementById("lockForm");
 const lockPasswordInput = document.getElementById("lockPasswordInput");
 const lockError = document.getElementById("lockError");
 
+const EYE_OPEN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_CLOSED_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.4 17.4A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a21.6 21.6 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+function setupPasswordToggle(inputId, btnId){
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  btn.innerHTML = EYE_OPEN_SVG;
+  btn.addEventListener("click", () => {
+    const showing = input.type === "text";
+    input.type = showing ? "password" : "text";
+    btn.innerHTML = showing ? EYE_OPEN_SVG : EYE_CLOSED_SVG;
+    btn.setAttribute("aria-label", showing ? "パスワードを表示" : "パスワードを隠す");
+    input.focus();
+  });
+}
+setupPasswordToggle("lockPasswordInput", "lockPasswordToggle");
+setupPasswordToggle("syncTokenInput", "syncTokenToggle");
+
 function getGasUrl(){
   return localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL;
 }
@@ -932,6 +1035,9 @@ function showLock(){
   lockScreen.classList.remove("hidden");
   lockError.textContent = "";
   lockPasswordInput.value = "";
+  lockPasswordInput.type = "password";
+  document.getElementById("lockPasswordToggle").innerHTML = EYE_OPEN_SVG;
+  document.getElementById("lockPasswordToggle").setAttribute("aria-label", "パスワードを表示");
   lockPasswordInput.focus();
 }
 
