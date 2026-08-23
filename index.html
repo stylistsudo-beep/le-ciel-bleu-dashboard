@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LE CIEL BLEU 卸営業ダッシュボード</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --card-bg:#ffffff;
+    --text:#1f2430;
+    --text-sub:#6b7280;
+    --border:#e5e7eb;
+    --accent:#2f5fae;
+    --accent-soft:#eaf0fb;
+    --danger:#d64545;
+    --danger-soft:#fdeaea;
+    --warn:#c98a12;
+    --warn-soft:#fdf3df;
+    --ok:#2f9e5c;
+    --ok-soft:#e8f7ee;
+    --shadow: 0 1px 3px rgba(16,24,40,0.08), 0 1px 2px rgba(16,24,40,0.04);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  header{
+    padding:20px 28px;
+    background:#fff;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  header h1{
+    font-size:19px;
+    margin:0;
+    font-weight:700;
+  }
+  header .sub{
+    font-size:12px;
+    color:var(--text-sub);
+    margin-top:2px;
+  }
+  .sync-status{
+    font-size:11px;
+    color:var(--text-sub);
+    margin-top:6px;
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+  }
+  .sync-status.ok{color:var(--ok);}
+  .sync-status.error{color:var(--danger);}
+  .sync-status.busy{color:var(--accent);}
+
+  .lock-screen{
+    position:fixed; inset:0;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    z-index:200;
+    padding:20px;
+  }
+  .lock-card{
+    background:#fff;
+    border-radius:14px;
+    padding:32px 28px;
+    max-width:340px;
+    width:100%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.15);
+    text-align:center;
+  }
+  .lock-card h2{margin:0 0 6px; font-size:17px;}
+  .lock-card p{margin:0 0 20px; font-size:13px; color:var(--text-sub);}
+  .lock-card input{width:100%; text-align:center; font-size:16px; padding:10px; margin-bottom:12px; box-sizing:border-box;}
+  .lock-error{color:var(--danger); font-size:12px; min-height:16px; margin-bottom:8px;}
+  .btn{
+    border:none;
+    border-radius:8px;
+    padding:9px 16px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  .btn:hover{opacity:.85;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-ghost{background:var(--accent-soft); color:var(--accent);}
+  .btn-danger{background:var(--danger-soft); color:var(--danger);}
+
+  .header-actions{display:flex; gap:10px; flex-wrap:wrap;}
+
+  main{
+    max-width:1200px;
+    margin:0 auto;
+    padding:20px 28px 60px;
+  }
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+    margin-bottom:18px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px 16px;
+    box-shadow:var(--shadow);
+  }
+  .filter-group{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+  }
+  .filter-group label{
+    color:var(--text-sub);
+    font-weight:600;
+    margin-right:2px;
+  }
+  select, input[type=text], input[type=date], textarea{
+    font-family:inherit;
+    font-size:13px;
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:7px 10px;
+    background:#fff;
+    color:var(--text);
+  }
+  select:focus, input:focus, textarea:focus{
+    outline:2px solid var(--accent);
+    outline-offset:-1px;
+  }
+  .toolbar .count{
+    margin-left:auto;
+    font-size:13px;
+    color:var(--text-sub);
+  }
+  .reset-link{
+    background:none;
+    border:none;
+    color:var(--accent);
+    font-size:12px;
+    cursor:pointer;
+    padding:0;
+    text-decoration:underline;
+  }
+
+  .legend{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    font-size:12px;
+    color:var(--text-sub);
+    margin-bottom:14px;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  .dot.overdue{background:var(--danger);}
+  .dot.soon{background:var(--warn);}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));
+    gap:16px;
+  }
+
+  .card{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    box-shadow:var(--shadow);
+    position:relative;
+    border-left:4px solid transparent;
+  }
+  .card.overdue{border-left-color:var(--danger); background:linear-gradient(0deg, var(--danger-soft), var(--danger-soft)), var(--card-bg);}
+  .card.soon{border-left-color:var(--warn); background:linear-gradient(0deg, var(--warn-soft), var(--warn-soft)), var(--card-bg);}
+
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:8px;
+  }
+  .card-name{
+    font-size:16px;
+    font-weight:700;
+    line-height:1.35;
+  }
+  .badge-row{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
+  .badge{
+    font-size:11px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+  .badge-region{background:#eef1f6; color:#42546b;}
+  .badge-priority-S{background:#fde2e2; color:#b3261e;}
+  .badge-priority-A{background:#fdeccb; color:#8a5a00;}
+  .badge-priority-B{background:#e6eefc; color:#2f5fae;}
+  .badge-status{background:#f0eefc; color:#5b3fb0;}
+  .badge-status.st-未接触{background:#eef0f2; color:#5b6472;}
+  .badge-status.st-アプローチ中{background:#e6eefc; color:#2f5fae;}
+  .badge-status.st-商談中{background:#fdf3df; color:#8a5a00;}
+  .badge-status.st-成約{background:#e8f7ee; color:#1e7a45;}
+  .badge-status.st-対象外{background:#f2f2f2; color:#9aa0a6; text-decoration:line-through;}
+
+  .card-body{margin-top:12px; font-size:13px; line-height:1.6;}
+  .card-body .label{color:var(--text-sub); font-size:11px; font-weight:600;}
+  .next-action{margin-top:2px;}
+  .next-date{
+    margin-top:8px;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:700;
+    padding:4px 9px;
+    border-radius:7px;
+    background:#f2f3f5;
+    color:#4b5563;
+  }
+  .next-date.overdue{background:var(--danger); color:#fff;}
+  .next-date.soon{background:var(--warn); color:#fff;}
+
+  .card-actions{
+    margin-top:14px;
+    display:flex;
+    gap:8px;
+    border-top:1px solid var(--border);
+    padding-top:12px;
+  }
+  .card-actions button{
+    flex:1;
+    font-size:12px;
+    padding:7px 8px;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--text-sub);
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(20,24,32,0.45);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .hidden{display:none !important;}
+  .modal{
+    background:#fff;
+    border-radius:14px;
+    width:100%;
+    max-width:480px;
+    max-height:90vh;
+    overflow-y:auto;
+    padding:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.25);
+  }
+  .modal h2{margin:0 0 18px; font-size:17px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    color:var(--text-sub);
+    margin-bottom:5px;
+  }
+  .field select, .field input, .field textarea{
+    width:100%;
+  }
+  .field textarea{resize:vertical; min-height:60px;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:20px;
+  }
+
+  .import-summary{font-size:13px; color:var(--text-sub); margin-bottom:14px; line-height:1.6;}
+  .import-mode{display:flex; gap:16px; font-size:13px;}
+  .import-mode label{display:flex; align-items:center; gap:6px; font-weight:400; color:var(--text); cursor:pointer;}
+  .import-table-wrap{max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; margin-top:10px;}
+  .import-table{width:100%; border-collapse:collapse; font-size:12px;}
+  .import-table th{padding:6px 8px; text-align:left; background:#f7f8fa; position:sticky; top:0;}
+  .import-table td{padding:6px 8px; border-top:1px solid var(--border);}
+  .import-table td.more{color:var(--text-sub);}
+  .import-hint{font-size:12px; color:var(--text-sub); margin-top:10px; line-height:1.6;}
+
+  .add-panel{
+    background:#fff;
+    border:1px solid var(--accent);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:18px;
+    box-shadow:var(--shadow);
+  }
+  .add-panel h2{margin:0 0 16px; font-size:16px;}
+  .four-col{display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;}
+  .add-confirm{
+    margin-right:auto;
+    align-self:center;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ok);
+  }
+  @media (max-width:640px){
+    .four-col{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <h2>🔒 LE CIEL BLEU ダッシュボード</h2>
+    <p>パスワードを入力してください</p>
+    <form id="lockForm">
+      <input type="password" id="lockPasswordInput" placeholder="パスワード" autocomplete="current-password" required>
+      <div class="lock-error" id="lockError"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">開く</button>
+    </form>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>LE CIEL BLEU 卸営業ダッシュボード</h1>
+    <div class="sub">香川・岡山・広島 展開状況</div>
+    <div class="sync-status" id="syncStatus">スプレッドシート連携：未設定</div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" id="btnSync">🔄 同期</button>
+    <button class="btn btn-ghost" id="btnSyncSettings">🔗 連携設定</button>
+    <button class="btn btn-ghost" id="btnImportCsv">CSVインポート</button>
+    <button class="btn btn-primary" id="btnAdd">+ 店舗を追加</button>
+    <button class="btn btn-ghost" id="btnLock">🔒 ロック</button>
+  </div>
+  <input type="file" id="csvFileInput" accept=".csv,text/csv" class="hidden">
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="filter-group">
+      <label>地域</label>
+      <select id="filterRegion">
+        <option value="">すべて</option>
+        <option value="香川">香川</option>
+        <option value="岡山">岡山</option>
+        <option value="広島">広島</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>優先度</label>
+      <select id="filterPriority">
+        <option value="">すべて</option>
+        <option value="S">S</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>ステータス</label>
+      <select id="filterStatus">
+        <option value="">すべて</option>
+        <option value="未接触">未接触</option>
+        <option value="アプローチ中">アプローチ中</option>
+        <option value="商談中">商談中</option>
+        <option value="成約">成約</option>
+        <option value="対象外">対象外</option>
+      </select>
+    </div>
+    <button class="reset-link" id="btnReset">絞り込みをリセット</button>
+    <div class="count" id="countLabel"></div>
+  </div>
+
+  <div class="add-panel hidden" id="addPanel">
+    <h2>新しい店舗を追加</h2>
+    <form id="addForm">
+      <div class="field">
+        <label>店名</label>
+        <input type="text" id="qName" required placeholder="例）〇〇百貨店 高松店">
+      </div>
+      <div class="four-col">
+        <div class="field">
+          <label>地域</label>
+          <select id="qRegion">
+            <option value="香川">香川</option>
+            <option value="岡山">岡山</option>
+            <option value="広島">広島</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>優先度</label>
+          <select id="qPriority">
+            <option value="S">S</option>
+            <option value="A" selected>A</option>
+            <option value="B">B</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>ステータス</label>
+          <select id="qStatus">
+            <option value="未接触">未接触</option>
+            <option value="アプローチ中">アプローチ中</option>
+            <option value="商談中">商談中</option>
+            <option value="成約">成約</option>
+            <option value="対象外">対象外</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>次のアクションの期限</label>
+          <input type="date" id="qDate">
+        </div>
+      </div>
+      <div class="field">
+        <label>次のアクション内容</label>
+        <textarea id="qAction" placeholder="例）電話でアポイントを取る、商品サンプル送付 など"></textarea>
+      </div>
+      <div class="modal-actions">
+        <span class="add-confirm hidden" id="addConfirmMsg"></span>
+        <button type="button" class="btn btn-ghost" id="btnAddCancel">閉じる</button>
+        <button type="submit" class="btn btn-primary">追加する</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot overdue"></span>期限切れ</span>
+    <span><span class="dot soon"></span>期限が今日〜3日以内</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty-state hidden" id="emptyState">該当する店舗がありません。</div>
+</main>
+
+<div class="overlay hidden" id="overlay">
+  <div class="modal">
+    <h2>店舗を編集</h2>
+    <form id="storeForm">
+      <input type="hidden" id="storeId">
+      <div class="field">
+        <label>店名</label>
+        <input type="text" id="fName" required placeholder="例）〇〇百貨店 高松店">
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label>地域</label>
+          <select id="fRegion">
+            <option value="香川">香川</option>
+            <option value="岡山">岡山</option>
+            <option value="広島">広島</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>優先度</label>
+          <select id="fPriority">
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>ステータス</label>
+        <select id="fStatus">
+          <option value="未接触">未接触</option>
+          <option value="アプローチ中">アプローチ中</option>
+          <option value="商談中">商談中</option>
+          <option value="成約">成約</option>
+          <option value="対象外">対象外</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>次のアクション内容</label>
+        <textarea id="fAction" placeholder="例）商品サンプル送付、来週オーナーと商談 など"></textarea>
+      </div>
+      <div class="field">
+        <label>次のアクションの期限</label>
+        <input type="date" id="fDate">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="btnDelete">削除</button>
+        <button type="button" class="btn btn-ghost" id="btnCancel">キャンセル</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay hidden" id="importOverlay">
+  <div class="modal">
+    <h2>CSVインポート確認</h2>
+    <div class="import-summary" id="importSummary"></div>
+    <div class="field">
+      <label>取り込み方法</label>
+      <div class="import-mode">
+        <label><input type="radio" name="importMode" value="replace" checked> 既存データを置き換える</label>
+        <label><input type="radio" name="importMode" value="append"> 既存データに追加する</label>
+      </div>
+    </div>
+    <div class="import-table-wrap">
+      <table class="import-table">
+        <thead>
+          <tr><th>店名</th><th>地域</th><th>優先度</th><th>ステータス</th></tr>
+        </thead>
+        <tbody id="importPreviewBody"></tbody>
+      </table>
+    </div>
+    <div class="import-hint">
+      対応する見出し列：店名／地域／優先度／ステータス／次のアクション（内容）／次のアクションの期限。<br>
+      Googleスプレッドシートは「ファイル→ダウンロード→カンマ区切り値（.csv）」で書き出したものをそのまま読み込めます。
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="btnImportCancel">キャンセル</button>
+      <button type="button" class="btn btn-primary" id="btnImportConfirm">インポート実行</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="syncOverlay">
+  <div class="modal">
+    <h2>スプレッドシート連携設定</h2>
+    <div class="import-summary">
+      Google Apps Scriptで発行した「ウェブアプリのURL」を貼り付けてください。<br>
+      設定すると、アプリ起動時にスプレッドシートの最新内容を読み込み、アプリ側での編集・追加・削除がスプレッドシートにも反映されるようになります。<br>
+      セットアップ手順は同梱の <code>apps-script/Code.gs</code> のコメントを参照してください。
+    </div>
+    <div class="field">
+      <label>ウェブアプリのURL</label>
+      <input type="text" id="syncUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+    </div>
+    <div class="field">
+      <label>パスワード（Apps Script側で設定している場合）</label>
+      <input type="password" id="syncTokenInput" placeholder="パスワード">
+    </div>
+    <div class="import-summary" id="syncTestResult"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-danger" id="btnSyncDisconnect">連携を解除</button>
+      <button type="button" class="btn btn-ghost" id="btnSyncCancel">閉じる</button>
+      <button type="button" class="btn btn-primary" id="btnSyncSave">保存して接続テスト</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = "lcb-wholesale-stores-v2";
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+}
+
+function todayISO(){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d.toISOString().slice(0,10);
+}
+
+// 実データはGoogleスプレッドシート側で管理（連携設定を参照）。
+// ここには実店舗名を含めない（公開リポジトリにこのファイルが含まれるため）。
+const seedData = [];
+
+function loadStores(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw){
+    saveStores(seedData);
+    return seedData;
+  }
+  try{
+    return JSON.parse(raw);
+  }catch(e){
+    return [];
+  }
+}
+
+function saveStores(stores){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stores));
+}
+
+let stores = loadStores();
+
+const grid = document.getElementById("grid");
+const emptyState = document.getElementById("emptyState");
+const countLabel = document.getElementById("countLabel");
+
+const filterRegion = document.getElementById("filterRegion");
+const filterPriority = document.getElementById("filterPriority");
+const filterStatus = document.getElementById("filterStatus");
+document.getElementById("btnReset").addEventListener("click", () => {
+  filterRegion.value = "";
+  filterPriority.value = "";
+  filterStatus.value = "";
+  render();
+});
+[filterRegion, filterPriority, filterStatus].forEach(el => el.addEventListener("change", render));
+
+function dateStatus(dateStr){
+  if(!dateStr) return null;
+  const today = new Date(todayISO());
+  const target = new Date(dateStr);
+  const diffDays = Math.round((target - today) / 86400000);
+  if(diffDays < 0) return "overdue";
+  if(diffDays <= 3) return "soon";
+  return null;
+}
+
+function formatDate(dateStr){
+  if(!dateStr) return "未設定";
+  const d = new Date(dateStr);
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function render(){
+  const rRegion = filterRegion.value;
+  const rPriority = filterPriority.value;
+  const rStatus = filterStatus.value;
+
+  const filtered = stores.filter(s => {
+    if(rRegion && s.region !== rRegion) return false;
+    if(rPriority && s.priority !== rPriority) return false;
+    if(rStatus && s.status !== rStatus) return false;
+    return true;
+  });
+
+  // Sort: overdue first, then soon, then by date, then no-date last
+  filtered.sort((a,b) => {
+    const rank = st => st === "overdue" ? 0 : st === "soon" ? 1 : 2;
+    const ra = rank(dateStatus(a.nextActionDate));
+    const rb = rank(dateStatus(b.nextActionDate));
+    if(ra !== rb) return ra - rb;
+    if(!a.nextActionDate && !b.nextActionDate) return 0;
+    if(!a.nextActionDate) return 1;
+    if(!b.nextActionDate) return -1;
+    return a.nextActionDate.localeCompare(b.nextActionDate);
+  });
+
+  countLabel.textContent = `${filtered.length} / ${stores.length} 件表示`;
+
+  grid.innerHTML = "";
+  emptyState.classList.toggle("hidden", filtered.length > 0);
+
+  filtered.forEach(s => {
+    const ds = dateStatus(s.nextActionDate);
+    const card = document.createElement("div");
+    card.className = "card" + (ds ? ` ${ds}` : "");
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-name">${escapeHtml(s.name)}</div>
+      </div>
+      <div class="badge-row">
+        <span class="badge badge-region">${s.region}</span>
+        <span class="badge badge-priority-${s.priority}">優先度 ${s.priority}</span>
+        <span class="badge badge-status st-${s.status}">${s.status}</span>
+      </div>
+      <div class="card-body">
+        <div class="label">次のアクション</div>
+        <div class="next-action">${s.nextAction ? escapeHtml(s.nextAction) : "―"}</div>
+        <div class="next-date${ds ? ` ${ds}` : ""}">
+          ${ds === "overdue" ? "⚠ 期限切れ：" : ds === "soon" ? "⏰ 期限間近：" : "期限："}${formatDate(s.nextActionDate)}
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-ghost" data-edit="${s.id}">編集</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => openModal(btn.dataset.edit));
+  });
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Edit modal (existing stores only)
+const overlay = document.getElementById("overlay");
+const storeForm = document.getElementById("storeForm");
+const fId = document.getElementById("storeId");
+const fName = document.getElementById("fName");
+const fRegion = document.getElementById("fRegion");
+const fPriority = document.getElementById("fPriority");
+const fStatus = document.getElementById("fStatus");
+const fAction = document.getElementById("fAction");
+const fDate = document.getElementById("fDate");
+const btnDelete = document.getElementById("btnDelete");
+
+document.getElementById("btnCancel").addEventListener("click", closeModal);
+overlay.addEventListener("click", (e) => { if(e.target === overlay) closeModal(); });
+
+function openModal(id){
+  const s = stores.find(x => x.id === id);
+  if(!s) return;
+  fId.value = s.id;
+  fName.value = s.name;
+  fRegion.value = s.region;
+  fPriority.value = s.priority;
+  fStatus.value = s.status;
+  fAction.value = s.nextAction || "";
+  fDate.value = s.nextActionDate || "";
+  overlay.classList.remove("hidden");
+  fName.focus();
+}
+
+function closeModal(){
+  overlay.classList.add("hidden");
+}
+
+storeForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const data = {
+    name: fName.value.trim(),
+    region: fRegion.value,
+    priority: fPriority.value,
+    status: fStatus.value,
+    nextAction: fAction.value.trim(),
+    nextActionDate: fDate.value || null,
+  };
+  if(!data.name) return;
+
+  const submitBtn = storeForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try{
+    if(getGasUrl()){
+      const result = await postToSheet("update", { id: fId.value, ...data });
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+    }
+    const idx = stores.findIndex(x => x.id === fId.value);
+    if(idx !== -1) stores[idx] = { ...stores[idx], ...data };
+    saveStores(stores);
+    closeModal();
+    render();
+  }catch(err){
+    alert("スプレッドシートへの反映に失敗しました：" + err.message);
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
+
+btnDelete.addEventListener("click", async () => {
+  if(!fId.value) return;
+  if(!confirm("この店舗を削除しますか？")) return;
+  btnDelete.disabled = true;
+  try{
+    if(getGasUrl()){
+      const result = await postToSheet("delete", { id: fId.value });
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+    }
+    stores = stores.filter(x => x.id !== fId.value);
+    saveStores(stores);
+    closeModal();
+    render();
+  }catch(err){
+    alert("スプレッドシートへの反映に失敗しました：" + err.message);
+  }finally{
+    btnDelete.disabled = false;
+  }
+});
+
+// Inline "add new store" panel
+const addPanel = document.getElementById("addPanel");
+const addForm = document.getElementById("addForm");
+const qName = document.getElementById("qName");
+const qRegion = document.getElementById("qRegion");
+const qPriority = document.getElementById("qPriority");
+const qStatus = document.getElementById("qStatus");
+const qAction = document.getElementById("qAction");
+const qDate = document.getElementById("qDate");
+const addConfirmMsg = document.getElementById("addConfirmMsg");
+const btnAdd = document.getElementById("btnAdd");
+
+function resetAddForm(){
+  addForm.reset();
+  qPriority.value = "A";
+  qRegion.value = "香川";
+  qStatus.value = "未接触";
+}
+
+btnAdd.addEventListener("click", () => {
+  const isOpen = !addPanel.classList.contains("hidden");
+  if(isOpen){
+    addPanel.classList.add("hidden");
+    btnAdd.textContent = "+ 店舗を追加";
+  }else{
+    resetAddForm();
+    addConfirmMsg.classList.add("hidden");
+    addPanel.classList.remove("hidden");
+    btnAdd.textContent = "－ 追加フォームを閉じる";
+    addPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+    qName.focus();
+  }
+});
+
+document.getElementById("btnAddCancel").addEventListener("click", () => {
+  addPanel.classList.add("hidden");
+  btnAdd.textContent = "+ 店舗を追加";
+});
+
+addForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = qName.value.trim();
+  if(!name) return;
+
+  const data = {
+    name,
+    region: qRegion.value,
+    priority: qPriority.value,
+    status: qStatus.value,
+    nextAction: qAction.value.trim(),
+    nextActionDate: qDate.value || null,
+  };
+
+  const submitBtn = addForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try{
+    let id;
+    if(getGasUrl()){
+      const result = await postToSheet("add", data);
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+      id = result.id;
+    }else{
+      id = uid();
+    }
+    stores.push({ id, ...data });
+    saveStores(stores);
+    render();
+
+    addConfirmMsg.textContent = `「${name}」を追加しました`;
+    addConfirmMsg.classList.remove("hidden");
+    resetAddForm();
+    qName.focus();
+  }catch(err){
+    alert("スプレッドシートへの反映に失敗しました：" + err.message);
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
+
+// Google Sheets sync (via Apps Script Web App)
+// URLはパスワードで保護されたAPIのエンドポイントに過ぎず、それ自体は秘密情報ではないため既定値として埋め込む。
+// 実際のアクセス制御はApps Script側のパスワード（token）チェックで行う。
+const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbx2VfkztiEHzexgrb-qrHZslTzEH6wUHmJUYYRhQ_O3ajGxzP7yq3veCEDK00WYhEdc/exec";
+const GAS_URL_KEY = "lcb-gas-endpoint";
+const APP_TOKEN_KEY = "lcb-app-token";
+let appToken = localStorage.getItem(APP_TOKEN_KEY) || "";
+
+const syncStatusEl = document.getElementById("syncStatus");
+const btnSync = document.getElementById("btnSync");
+const btnSyncSettings = document.getElementById("btnSyncSettings");
+const syncOverlay = document.getElementById("syncOverlay");
+const syncUrlInput = document.getElementById("syncUrlInput");
+const syncTokenInput = document.getElementById("syncTokenInput");
+const syncTestResult = document.getElementById("syncTestResult");
+const lockScreen = document.getElementById("lockScreen");
+const lockForm = document.getElementById("lockForm");
+const lockPasswordInput = document.getElementById("lockPasswordInput");
+const lockError = document.getElementById("lockError");
+
+function getGasUrl(){
+  return localStorage.getItem(GAS_URL_KEY) || DEFAULT_GAS_URL;
+}
+
+function setGasUrl(url){
+  if(url && url !== DEFAULT_GAS_URL) localStorage.setItem(GAS_URL_KEY, url);
+  else localStorage.removeItem(GAS_URL_KEY);
+}
+
+function setSyncStatus(text, kind){
+  syncStatusEl.textContent = text;
+  syncStatusEl.className = "sync-status" + (kind ? " " + kind : "");
+}
+
+async function fetchStoresFromSheet(url, token){
+  const sep = url.includes("?") ? "&" : "?";
+  const res = await fetch(url + sep + "token=" + encodeURIComponent(token || ""));
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error === "unauthorized" ? "パスワードが違います" : (data.error || "unknown error"));
+  return data.stores;
+}
+
+async function postToSheet(action, payload){
+  const url = getGasUrl();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action, token: appToken, ...payload }),
+  });
+  if(!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+async function syncFromSheet(showBusy){
+  const url = getGasUrl();
+  if(showBusy) setSyncStatus("同期中…", "busy");
+  try{
+    const remote = await fetchStoresFromSheet(url, appToken);
+    stores = remote;
+    saveStores(stores);
+    render();
+    setSyncStatus("スプレッドシートと同期済み（" + new Date().toLocaleTimeString("ja-JP") + "）", "ok");
+  }catch(err){
+    setSyncStatus("同期エラー：ローカルの内容を表示中（" + err.message + "）", "error");
+    throw err;
+  }
+}
+
+function showLock(){
+  lockScreen.classList.remove("hidden");
+  lockError.textContent = "";
+  lockPasswordInput.value = "";
+  lockPasswordInput.focus();
+}
+
+function hideLock(){
+  lockScreen.classList.add("hidden");
+}
+
+lockForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const pw = lockPasswordInput.value;
+  lockError.textContent = "";
+  const submitBtn = lockForm.querySelector('button[type="submit"]');
+  submitBtn.disabled = true;
+  try{
+    const remote = await fetchStoresFromSheet(getGasUrl(), pw);
+    appToken = pw;
+    localStorage.setItem(APP_TOKEN_KEY, appToken);
+    stores = remote;
+    saveStores(stores);
+    hideLock();
+    render();
+    setSyncStatus("スプレッドシートと同期済み（" + new Date().toLocaleTimeString("ja-JP") + "）", "ok");
+  }catch(err){
+    lockError.textContent = err.message || "接続できませんでした。";
+  }finally{
+    submitBtn.disabled = false;
+  }
+});
+
+document.getElementById("btnLock").addEventListener("click", () => {
+  appToken = "";
+  localStorage.removeItem(APP_TOKEN_KEY);
+  showLock();
+});
+
+btnSync.addEventListener("click", () => syncFromSheet(true).catch(() => {}));
+
+btnSyncSettings.addEventListener("click", () => {
+  syncUrlInput.value = getGasUrl();
+  syncTokenInput.value = appToken;
+  syncTestResult.textContent = "";
+  syncOverlay.classList.remove("hidden");
+});
+
+document.getElementById("btnSyncCancel").addEventListener("click", () => {
+  syncOverlay.classList.add("hidden");
+});
+syncOverlay.addEventListener("click", (e) => { if(e.target === syncOverlay) syncOverlay.classList.add("hidden"); });
+
+document.getElementById("btnSyncDisconnect").addEventListener("click", () => {
+  if(!confirm("スプレッドシートとの連携を解除しますか？（アプリはローカルの内容のみで動作するようになります）")) return;
+  setGasUrl("");
+  appToken = "";
+  localStorage.removeItem(APP_TOKEN_KEY);
+  syncOverlay.classList.add("hidden");
+  setSyncStatus("スプレッドシート連携：未設定");
+});
+
+document.getElementById("btnSyncSave").addEventListener("click", async () => {
+  const url = syncUrlInput.value.trim();
+  const token = syncTokenInput.value;
+  if(!url){
+    syncTestResult.textContent = "URLを入力してください。";
+    return;
+  }
+  syncTestResult.textContent = "接続テスト中…";
+  try{
+    const remote = await fetchStoresFromSheet(url, token);
+    setGasUrl(url);
+    appToken = token;
+    localStorage.setItem(APP_TOKEN_KEY, appToken);
+    stores = remote;
+    saveStores(stores);
+    render();
+    setSyncStatus("スプレッドシートと同期済み（" + new Date().toLocaleTimeString("ja-JP") + "）", "ok");
+    syncTestResult.textContent = `接続に成功しました（${remote.length}件取得しました）。`;
+    setTimeout(() => { syncOverlay.classList.add("hidden"); hideLock(); }, 1000);
+  }catch(err){
+    syncTestResult.textContent = "接続に失敗しました：" + err.message + "（URLやパスワードをご確認ください）";
+  }
+});
+
+// CSV import
+const STATUS_LIST = ["未接触", "アプローチ中", "商談中", "成約", "対象外"];
+
+const csvFileInput = document.getElementById("csvFileInput");
+const importOverlay = document.getElementById("importOverlay");
+const importSummary = document.getElementById("importSummary");
+const importPreviewBody = document.getElementById("importPreviewBody");
+const btnImportCancel = document.getElementById("btnImportCancel");
+const btnImportConfirm = document.getElementById("btnImportConfirm");
+
+let pendingImportStores = [];
+
+document.getElementById("btnImportCsv").addEventListener("click", () => csvFileInput.click());
+csvFileInput.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try{
+      processCsvText(ev.target.result);
+    }catch(err){
+      alert("CSVの読み込みに失敗しました: " + err.message);
+    }
+  };
+  reader.onerror = () => alert("ファイルの読み込みに失敗しました。");
+  reader.readAsText(file);
+});
+
+function parseCSV(text){
+  const rows = [];
+  let row = [];
+  let field = "";
+  let inQuotes = false;
+  for(let i=0; i<text.length; i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else{ inQuotes = false; }
+      }else{
+        field += c;
+      }
+    }else{
+      if(c === '"'){
+        inQuotes = true;
+      }else if(c === ","){
+        row.push(field); field = "";
+      }else if(c === "\n"){
+        row.push(field); rows.push(row); row = []; field = "";
+      }else if(c === "\r"){
+        if(text[i+1] !== "\n"){ row.push(field); rows.push(row); row = []; field = ""; }
+      }else{
+        field += c;
+      }
+    }
+  }
+  if(field.length > 0 || row.length > 0){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+function findColIndex(headers, aliases){
+  for(let i=0;i<headers.length;i++){
+    if(aliases.includes(headers[i].trim())) return i;
+  }
+  return -1;
+}
+
+function normalizeRegion(v){
+  if(!v) return null;
+  const t = v.trim().replace(/県$/, "");
+  if(t.includes("香川")) return "香川";
+  if(t.includes("岡山")) return "岡山";
+  if(t.includes("広島")) return "広島";
+  return null;
+}
+
+function normalizePriority(v){
+  if(!v) return null;
+  const t = v.trim().toUpperCase();
+  return ["S","A","B"].includes(t) ? t : null;
+}
+
+function normalizeStatus(v){
+  if(!v) return null;
+  const t = v.trim();
+  if(STATUS_LIST.includes(t)) return t;
+  return STATUS_LIST.find(s => t.includes(s)) || null;
+}
+
+function normalizeDate(v){
+  if(!v) return null;
+  const t = v.trim();
+  if(!t) return null;
+  let m = t.match(/^(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m = t.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return `${m[3]}-${m[1].padStart(2,"0")}-${m[2].padStart(2,"0")}`;
+  const d = new Date(t);
+  if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  return null;
+}
+
+function processCsvText(text){
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = parseCSV(text).filter(r => r.some(c => c.trim() !== ""));
+  if(rows.length < 2){
+    alert("データ行が見つかりませんでした。1行目に見出し、2行目以降にデータがあるCSVを選んでください。");
+    return;
+  }
+
+  const headers = rows[0];
+  const idxName = findColIndex(headers, ["店名","店舗名","ブランド名","name"]);
+  const idxRegion = findColIndex(headers, ["地域","エリア","市区町村・エリア","region"]);
+  const idxPriority = findColIndex(headers, ["優先度","priority"]);
+  const idxStatus = findColIndex(headers, ["ステータス","status","進捗","アプローチ状況"]);
+  const idxAction = findColIndex(headers, ["次のアクション内容","次のアクション","アクション","action","次回アクション"]);
+  const idxDate = findColIndex(headers, ["次のアクションの期限","期限","次回期限","date","商談予定日"]);
+
+  if(idxName === -1){
+    alert("「店名」の列が見つかりませんでした。CSVの見出し行を確認してください。");
+    return;
+  }
+
+  let skipped = 0, normalized = 0;
+  const parsed = [];
+  for(let i=1; i<rows.length; i++){
+    const r = rows[i];
+    const name = (r[idxName] || "").trim();
+    if(!name){ skipped++; continue; }
+
+    const region = idxRegion !== -1 ? normalizeRegion(r[idxRegion]) : null;
+    const priority = idxPriority !== -1 ? normalizePriority(r[idxPriority]) : null;
+    const status = idxStatus !== -1 ? normalizeStatus(r[idxStatus]) : null;
+    const nextActionDate = idxDate !== -1 ? normalizeDate(r[idxDate]) : null;
+
+    if(!region || !priority || !status) normalized++;
+
+    parsed.push({
+      id: uid(),
+      name,
+      region: region || "香川",
+      priority: priority || "B",
+      status: status || "未接触",
+      nextAction: idxAction !== -1 ? (r[idxAction] || "").trim() : "",
+      nextActionDate,
+    });
+  }
+
+  if(parsed.length === 0){
+    alert("インポートできる店舗データが見つかりませんでした。");
+    return;
+  }
+
+  pendingImportStores = parsed;
+  openImportModal(skipped, normalized);
+}
+
+function openImportModal(skipped, normalized){
+  const parts = [`${pendingImportStores.length} 件の店舗データを読み込みました。`];
+  if(skipped > 0) parts.push(`店名が空だった ${skipped} 行はスキップしました。`);
+  if(normalized > 0) parts.push(`地域・優先度・ステータスのいずれかが不明だった項目は既定値（香川／B／未接触）で補いました（${normalized} 件）。インポート後に内容をご確認ください。`);
+  importSummary.textContent = parts.join(" ");
+
+  const rowsHtml = pendingImportStores.slice(0, 30).map(s => `
+    <tr>
+      <td>${escapeHtml(s.name)}</td>
+      <td>${escapeHtml(s.region)}</td>
+      <td>${escapeHtml(s.priority)}</td>
+      <td>${escapeHtml(s.status)}</td>
+    </tr>
+  `).join("");
+  const moreHtml = pendingImportStores.length > 30
+    ? `<tr><td class="more" colspan="4">他 ${pendingImportStores.length - 30} 件…</td></tr>`
+    : "";
+  importPreviewBody.innerHTML = rowsHtml + moreHtml;
+
+  document.querySelector('input[name="importMode"][value="replace"]').checked = true;
+  importOverlay.classList.remove("hidden");
+}
+
+function closeImportModal(){
+  importOverlay.classList.add("hidden");
+  pendingImportStores = [];
+}
+
+btnImportCancel.addEventListener("click", closeImportModal);
+importOverlay.addEventListener("click", (e) => { if(e.target === importOverlay) closeImportModal(); });
+
+btnImportConfirm.addEventListener("click", () => {
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  stores = mode === "replace" ? pendingImportStores : stores.concat(pendingImportStores);
+  saveStores(stores);
+  closeImportModal();
+  render();
+});
+
+async function init(){
+  render();
+  if(appToken){
+    try{
+      await syncFromSheet(false);
+      hideLock();
+      return;
+    }catch(err){
+      // 保存されたパスワードが無効・接続不可 → ロック画面へ
+    }
+  }
+  showLock();
+}
+init();
+</script>
+</body>
+</html>
