@@ -133,6 +133,9 @@
   .drag-handle:active{cursor:grabbing;}
   .drag-handle svg{width:18px; height:18px; display:block;}
   .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
     border:none;
     border-radius:8px;
     padding:9px 16px;
@@ -141,6 +144,7 @@
     cursor:pointer;
     transition:opacity .15s;
   }
+  .btn svg{width:15px; height:15px; flex-shrink:0;}
   .btn:hover{opacity:.85;}
   .btn-primary{background:var(--accent); color:#fff;}
   .btn-ghost{background:var(--accent-soft); color:var(--accent);}
@@ -232,6 +236,11 @@
     box-shadow:var(--shadow);
     position:relative;
     border-left:4px solid transparent;
+    transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .card:hover{
+    box-shadow:0 6px 16px rgba(16,24,40,0.10), 0 2px 4px rgba(16,24,40,0.06);
+    transform:translateY(-2px);
   }
   .card.overdue{border-left-color:var(--danger); background:linear-gradient(0deg, var(--danger-soft), var(--danger-soft)), var(--card-bg);}
   .card.soon{border-left-color:var(--warn); background:linear-gradient(0deg, var(--warn-soft), var(--warn-soft)), var(--card-bg);}
@@ -384,7 +393,7 @@
 
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
-    <h2>🔒 LE CIEL BLEU ダッシュボード</h2>
+    <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-2px;margin-right:4px;"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>LE CIEL BLEU ダッシュボード</h2>
     <p>パスワードを入力してください</p>
     <form id="lockForm">
       <div class="password-wrap">
@@ -404,11 +413,11 @@
     <div class="sync-status" id="syncStatus">スプレッドシート連携：未設定</div>
   </div>
   <div class="header-actions">
-    <button class="btn btn-ghost" id="btnSync">🔄 同期</button>
-    <button class="btn btn-ghost" id="btnSyncSettings">🔗 連携設定</button>
+    <button class="btn btn-ghost" id="btnSync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/><path d="M3 16v4h4"/><path d="M21 8V4h-4"/></svg>同期</button>
+    <button class="btn btn-ghost" id="btnSyncSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7a5 5 0 0 1 0-10h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>連携設定</button>
     <button class="btn btn-ghost" id="btnImportCsv">CSVインポート</button>
     <button class="btn btn-primary" id="btnAdd">+ 店舗を追加</button>
-    <button class="btn btn-ghost" id="btnLock">🔒 ロック</button>
+    <button class="btn btn-ghost" id="btnLock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>ロック</button>
   </div>
   <input type="file" id="csvFileInput" accept=".csv,text/csv" class="hidden">
 </header>
