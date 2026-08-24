@@ -406,3 +406,66 @@ function consolidateReferenceTabs() {
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   sheet.autoResizeColumns(1, headers.length);
 }
+
+/**
+ * 「次のアクション期限」の表記がおかしい問題の修正。
+ * 原因：日付文字列（例:"2026-09-04"）をシートに書き込むと、
+ * スプレッドシートが自動的に日付型として認識し直してしまい、
+ * ロケール依存の表示（例:9/4/2026）や「候補店舗リスト（詳細）」側の
+ * VLOOKUP結果でシリアル値のようにズレて見えることがある。
+ * 対策：「次のアクション期限」列を「書式なしテキスト」に固定し、
+ * すでに日付型になってしまっている値は yyyy-MM-dd の文字列に戻す。
+ * 1回だけ手動実行すればよい（以後の追加・更新でも自動的にテキストのまま保存される）。
+ */
+function fixNextActionDateFormat() {
+  const ss = getSpreadsheet_();
+
+  // 「アプリ連携」の G列（次のアクション期限）
+  const appSheet = ss.getSheetByName(SHEET_NAME);
+  if (appSheet) {
+    const lastRow = appSheet.getLastRow();
+    if (lastRow > 1) {
+      const range = appSheet.getRange(2, 7, lastRow - 1, 1);
+      const values = range.getValues();
+      const fixed = values.map(function (row) {
+        const v = row[0];
+        if (v instanceof Date) {
+          return [Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd")];
+        }
+        return [v];
+      });
+      range.setNumberFormat("@"); // 書式なしテキストに固定
+      range.setValues(fixed);
+    }
+  }
+
+  // 「候補店舗リスト（詳細）」の F列（次のアクション期限、VLOOKUP式）
+  const refSheet = ss.getSheetByName("候補店舗リスト（詳細）");
+  if (refSheet) {
+    const lastRow = refSheet.getLastRow();
+    if (lastRow > 1) {
+      refSheet.getRange(2, 6, lastRow - 1, 1).setNumberFormat("@");
+    }
+  }
+
+  Logger.log("次のアクション期限の表記を修正しました。");
+}
+
+/**
+ * 「アプリ連携」に漏れていた OUI FOYER（香川）を追加する。
+ * 「候補店舗リスト（詳細）」には情報があるが、「アプリ連携」には
+ * 元々登録されていなかったため、香川が12件（本来13件）になっていた。
+ * すでに存在する場合は何もしない（二重追加防止）。1回だけ手動実行すればよい。
+ */
+function addOuiFoyerToApp() {
+  const sheet = getSheet_();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1] === "OUI FOYER") {
+      Logger.log("OUI FOYERは既に登録済みです。");
+      return;
+    }
+  }
+  sheet.appendRow([Utilities.getUuid(), "OUI FOYER", "香川", "B", "アプローチ中", "連絡待ち", "", new Date()]);
+  Logger.log("OUI FOYERを追加しました。");
+}
