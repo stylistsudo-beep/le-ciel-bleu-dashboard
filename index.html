@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LE CIEL BLEU 卸営業ダッシュボード</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="theme-color" content="#2f5fae">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="LCB営業">
 <style>
   :root{
     --bg:#f5f6f8;
@@ -15,10 +22,13 @@
     --accent-soft:#eaf0fb;
     --danger:#d64545;
     --danger-soft:#fdeaea;
+    --danger-card:#f6c6c6;
     --warn:#c98a12;
     --warn-soft:#fdf3df;
+    --warn-card:#fbdea3;
     --ok:#2f9e5c;
     --ok-soft:#e8f7ee;
+    --ok-card:#bdedd2;
     --shadow: 0 1px 3px rgba(16,24,40,0.08), 0 1px 2px rgba(16,24,40,0.04);
   }
   *{box-sizing:border-box;}
@@ -217,9 +227,11 @@
     margin-bottom:14px;
   }
   .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend b{color:var(--text); font-weight:700;}
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block;}
   .dot.overdue{background:var(--danger);}
   .dot.soon{background:var(--warn);}
+  .dot.closed{background:var(--ok);}
 
   .grid{
     display:grid;
@@ -241,8 +253,10 @@
     box-shadow:0 6px 16px rgba(16,24,40,0.10), 0 2px 4px rgba(16,24,40,0.06);
     transform:translateY(-2px);
   }
-  .card.overdue{border-left-color:var(--danger); background:linear-gradient(0deg, var(--danger-soft), var(--danger-soft)), var(--card-bg);}
-  .card.soon{border-left-color:var(--warn); background:linear-gradient(0deg, var(--warn-soft), var(--warn-soft)), var(--card-bg);}
+  .card.overdue{border-left-width:6px; border-left-color:var(--danger); background:var(--danger-card);}
+  .card.soon{border-left-width:6px; border-left-color:var(--warn); background:var(--warn-card);}
+  .card.closed{border-left-color:var(--ok); background:var(--ok-card);}
+  .card.inactive{opacity:0.55;}
 
   .card-top{
     display:flex;
@@ -456,6 +470,7 @@
       </select>
     </div>
     <button class="reset-link" id="btnReset">絞り込みをリセット</button>
+    <button class="btn btn-ghost" id="btnSortPriority" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="M3 17l3 3 3-3"/><path d="M6 18V4"/></svg>優先順位で並び替え</button>
     <div class="count" id="countLabel"></div>
   </div>
 
@@ -514,8 +529,10 @@
   </div>
 
   <div class="legend">
-    <span><span class="dot overdue"></span>期限切れ</span>
-    <span><span class="dot soon"></span>期限が今日〜3日以内</span>
+    <span><span class="dot overdue"></span>期限切れ <b id="overdueCount">0</b>件</span>
+    <span><span class="dot soon"></span>期限が今日〜3日以内 <b id="soonCount">0</b>件</span>
+    <span><span class="dot closed"></span>成約（薄緑で表示）</span>
+    <span>対象外は薄く表示</span>
   </div>
 
   <div class="grid" id="grid"></div>
@@ -716,16 +733,22 @@ function render(){
     return true;
   });
 
-  // 並び順はドラッグ&ドロップで手動設定（stores配列の並びをそのまま使用）
+  // 並び順はドラッグ&ドロップ（または「優先順位で並び替え」）で設定（stores配列の並びをそのまま使用）
   countLabel.textContent = `${filtered.length} / ${stores.length} 件表示`;
 
   grid.innerHTML = "";
   emptyState.classList.toggle("hidden", filtered.length > 0);
 
+  let overdueCount = 0, soonCount = 0;
+
   filtered.forEach(s => {
-    const ds = dateStatus(s.nextActionDate);
+    const isDone = s.status === "成約" || s.status === "対象外";
+    const ds = isDone ? null : dateStatus(s.nextActionDate);
+    if(ds === "overdue") overdueCount++;
+    if(ds === "soon") soonCount++;
+    const statusClass = ds ? ds : s.status === "成約" ? "closed" : s.status === "対象外" ? "inactive" : "";
     const card = document.createElement("div");
-    card.className = "card" + (ds ? ` ${ds}` : "");
+    card.className = "card" + (statusClass ? ` ${statusClass}` : "");
     card.dataset.id = s.id;
     card.innerHTML = `
       <div class="card-top">
@@ -753,12 +776,43 @@ function render(){
     grid.appendChild(card);
   });
 
+  document.getElementById("overdueCount").textContent = overdueCount;
+  document.getElementById("soonCount").textContent = soonCount;
+
   grid.querySelectorAll("[data-edit]").forEach(btn => {
     btn.addEventListener("click", () => openModal(btn.dataset.edit));
   });
 
   wireDragAndDrop();
 }
+
+// 対応が必要な店舗（期限切れ→期限間近→優先度）が上に来るよう並び替える。
+// 成約・対象外はもう対応不要なので末尾に送る。手動ドラッグ順の代わりに使う一括操作。
+const PRIORITY_RANK = { S: 0, A: 1, B: 2 };
+
+function urgencyScore(s){
+  if(s.status === "成約" || s.status === "対象外") return 1000 + (PRIORITY_RANK[s.priority] ?? 3);
+  const ds = dateStatus(s.nextActionDate);
+  const urgencyBase = ds === "overdue" ? 0 : ds === "soon" ? 100 : 200;
+  return urgencyBase + (PRIORITY_RANK[s.priority] ?? 3);
+}
+
+async function sortByPriority(){
+  stores = [...stores].sort((a, b) => urgencyScore(a) - urgencyScore(b));
+  saveStores(stores);
+  render();
+
+  if(getGasUrl()){
+    try{
+      const result = await postToSheet("reorder", { order: stores.map(s => s.id) });
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+    }catch(err){
+      setSyncStatus("並び替えの同期に失敗しました：" + err.message, "error");
+    }
+  }
+}
+
+document.getElementById("btnSortPriority").addEventListener("click", () => sortByPriority());
 
 // Pointer Events方式（マウス・タッチの両方で動作。HTML5ネイティブドラッグはスマホでは機能しないため）
 let dragState = null;
