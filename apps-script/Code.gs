@@ -174,6 +174,33 @@ function doPost(e) {
       return jsonResponse_({ ok: true });
     }
 
+    if (action === "replaceAll") {
+      // CSVインポートなど、店舗一覧をまるごと入れ替える操作用。
+      // 既存の行はいったんクリアし、渡された内容で新しいIDを振り直して書き込む。
+      const list = body.stores || [];
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        sheet.getRange(2, 1, lastRow - 1, HEADERS.length).clearContent();
+      }
+      const now = new Date();
+      const rows = list.map(function (s) {
+        return [
+          Utilities.getUuid(),
+          s.name || "",
+          s.region || "",
+          s.priority || "",
+          s.status || "",
+          s.nextAction || "",
+          s.nextActionDate || "",
+          now,
+        ];
+      });
+      if (rows.length > 0) {
+        sheet.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
+      }
+      return jsonResponse_({ ok: true, count: rows.length });
+    }
+
     return jsonResponse_({ ok: false, error: "unknown_action" });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err) });

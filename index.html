@@ -113,9 +113,25 @@
   }
   input[type="password"]::-webkit-textfield-decoration-container{ display:none; }
 
-  .card[draggable="true"]{cursor:grab;}
   .card.dragging{opacity:0.4;}
   .card.drag-over{box-shadow:0 -3px 0 0 var(--accent);}
+  .drag-handle{
+    background:none;
+    border:none;
+    cursor:grab;
+    touch-action:none;
+    color:var(--text-sub);
+    padding:4px;
+    margin:-4px -4px 0 0;
+    border-radius:6px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .drag-handle:hover{background:var(--accent-soft); color:var(--accent);}
+  .drag-handle:active{cursor:grabbing;}
+  .drag-handle svg{width:18px; height:18px; display:block;}
   .btn{
     border:none;
     border-radius:8px;
@@ -693,11 +709,13 @@ function render(){
     const ds = dateStatus(s.nextActionDate);
     const card = document.createElement("div");
     card.className = "card" + (ds ? ` ${ds}` : "");
-    card.draggable = true;
     card.dataset.id = s.id;
     card.innerHTML = `
       <div class="card-top">
         <div class="card-name">${escapeHtml(s.name)}</div>
+        <button type="button" class="drag-handle" aria-label="ドラッグして並び替え">
+          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+        </button>
       </div>
       <div class="badge-row">
         <span class="badge badge-region">${s.region}</span>
@@ -725,35 +743,55 @@ function render(){
   wireDragAndDrop();
 }
 
-let dragSourceId = null;
+// Pointer Events方式（マウス・タッチの両方で動作。HTML5ネイティブドラッグはスマホでは機能しないため）
+let dragState = null;
 
 function wireDragAndDrop(){
-  grid.querySelectorAll(".card").forEach(card => {
-    card.addEventListener("dragstart", () => {
-      dragSourceId = card.dataset.id;
-      card.classList.add("dragging");
-    });
-    card.addEventListener("dragend", () => {
-      card.classList.remove("dragging");
-      grid.querySelectorAll(".card").forEach(c => c.classList.remove("drag-over"));
-    });
-    card.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      if(card.dataset.id === dragSourceId) return;
-      card.classList.add("drag-over");
-    });
-    card.addEventListener("dragleave", () => {
-      card.classList.remove("drag-over");
-    });
-    card.addEventListener("drop", (e) => {
-      e.preventDefault();
-      card.classList.remove("drag-over");
-      const targetId = card.dataset.id;
-      if(!dragSourceId || dragSourceId === targetId) return;
-      reorderStores(dragSourceId, targetId);
-      dragSourceId = null;
-    });
+  grid.querySelectorAll(".drag-handle").forEach(handle => {
+    handle.addEventListener("pointerdown", onHandlePointerDown);
   });
+}
+
+function onHandlePointerDown(e){
+  const handle = e.currentTarget;
+  const card = handle.closest(".card");
+  if(!card) return;
+  e.preventDefault();
+  try{ handle.setPointerCapture(e.pointerId); }catch(err){}
+
+  dragState = { pointerId: e.pointerId, sourceId: card.dataset.id, sourceCard: card, targetId: null };
+  card.classList.add("dragging");
+
+  document.addEventListener("pointermove", onDragPointerMove);
+  document.addEventListener("pointerup", onDragPointerUp);
+  document.addEventListener("pointercancel", onDragPointerUp);
+}
+
+function onDragPointerMove(e){
+  if(!dragState || e.pointerId !== dragState.pointerId) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const overCard = el ? el.closest(".card") : null;
+  grid.querySelectorAll(".card").forEach(c => c.classList.remove("drag-over"));
+  if(overCard && overCard !== dragState.sourceCard){
+    overCard.classList.add("drag-over");
+    dragState.targetId = overCard.dataset.id;
+  }else{
+    dragState.targetId = null;
+  }
+}
+
+function onDragPointerUp(e){
+  if(!dragState || e.pointerId !== dragState.pointerId) return;
+  document.removeEventListener("pointermove", onDragPointerMove);
+  document.removeEventListener("pointerup", onDragPointerUp);
+  document.removeEventListener("pointercancel", onDragPointerUp);
+  grid.querySelectorAll(".card").forEach(c => c.classList.remove("dragging", "drag-over"));
+
+  const { sourceId, targetId } = dragState;
+  dragState = null;
+  if(targetId && targetId !== sourceId){
+    reorderStores(sourceId, targetId);
+  }
 }
 
 async function reorderStores(sourceId, targetId){
@@ -1309,12 +1347,36 @@ function closeImportModal(){
 btnImportCancel.addEventListener("click", closeImportModal);
 importOverlay.addEventListener("click", (e) => { if(e.target === importOverlay) closeImportModal(); });
 
-btnImportConfirm.addEventListener("click", () => {
+btnImportConfirm.addEventListener("click", async () => {
   const mode = document.querySelector('input[name="importMode"]:checked').value;
-  stores = mode === "replace" ? pendingImportStores : stores.concat(pendingImportStores);
-  saveStores(stores);
-  closeImportModal();
-  render();
+  const finalStores = mode === "replace" ? pendingImportStores : stores.concat(pendingImportStores);
+
+  btnImportConfirm.disabled = true;
+  const originalLabel = btnImportConfirm.textContent;
+  btnImportConfirm.textContent = "反映中…";
+  try{
+    if(getGasUrl()){
+      const result = await postToSheet("replaceAll", {
+        stores: finalStores.map(s => ({
+          name: s.name, region: s.region, priority: s.priority,
+          status: s.status, nextAction: s.nextAction, nextActionDate: s.nextActionDate,
+        })),
+      });
+      if(!result.ok) throw new Error(result.error || "同期に失敗しました");
+      stores = await fetchStoresFromSheet(getGasUrl(), appToken);
+      setSyncStatus("スプレッドシートと同期済み（" + new Date().toLocaleTimeString("ja-JP") + "）", "ok");
+    }else{
+      stores = finalStores;
+    }
+    saveStores(stores);
+    closeImportModal();
+    render();
+  }catch(err){
+    alert("スプレッドシートへの反映に失敗しました：" + err.message);
+  }finally{
+    btnImportConfirm.disabled = false;
+    btnImportConfirm.textContent = originalLabel;
+  }
 });
 
 async function init(){
