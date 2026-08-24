@@ -400,7 +400,7 @@
 <header>
   <div>
     <h1>LE CIEL BLEU 卸営業ダッシュボード</h1>
-    <div class="sub">香川・岡山・広島 展開状況</div>
+    <div class="sub">香川・岡山・広島・徳島・愛媛・高知 展開状況</div>
     <div class="sync-status" id="syncStatus">スプレッドシート連携：未設定</div>
   </div>
   <div class="header-actions">
@@ -422,6 +422,9 @@
         <option value="香川">香川</option>
         <option value="岡山">岡山</option>
         <option value="広島">広島</option>
+        <option value="徳島">徳島</option>
+        <option value="愛媛">愛媛</option>
+        <option value="高知">高知</option>
       </select>
     </div>
     <div class="filter-group">
@@ -462,6 +465,9 @@
             <option value="香川">香川</option>
             <option value="岡山">岡山</option>
             <option value="広島">広島</option>
+            <option value="徳島">徳島</option>
+            <option value="愛媛">愛媛</option>
+            <option value="高知">高知</option>
           </select>
         </div>
         <div class="field">
@@ -524,6 +530,9 @@
             <option value="香川">香川</option>
             <option value="岡山">岡山</option>
             <option value="広島">広島</option>
+            <option value="徳島">徳島</option>
+            <option value="愛媛">愛媛</option>
+            <option value="高知">高知</option>
           </select>
         </div>
         <div class="field">
@@ -1232,6 +1241,9 @@ function normalizeRegion(v){
   if(t.includes("香川")) return "香川";
   if(t.includes("岡山")) return "岡山";
   if(t.includes("広島")) return "広島";
+  if(t.includes("徳島")) return "徳島";
+  if(t.includes("愛媛")) return "愛媛";
+  if(t.includes("高知")) return "高知";
   return null;
 }
 
