@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOVE MY NEIGHBORHOOD LINESHEET</title>
+<style>
+  :root { --ink:#222; --muted:#888; --line:#d8d8d8; --accent:#B85042; --pending:#FFF2CC; }
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin:0; color:var(--ink); background:#fff;
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif; }
+  .page { max-width:1120px; margin:0 auto; padding:28px 24px 40px; page-break-after:always; }
+  .page:last-child { page-break-after:auto; }
+  .top { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--ink); padding-bottom:8px; margin-bottom:22px; }
+  .brand { font-size:13px; letter-spacing:.2em; font-weight:700; }
+  .cat { font-size:28px; font-weight:300; letter-spacing:.12em; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px 24px; }
+  .item { border-top:1px solid var(--line); padding-top:12px; }
+  .photo { aspect-ratio:4/5; background:#f3f1ee; display:flex; align-items:center; justify-content:center;
+    color:var(--muted); font-size:12px; letter-spacing:.1em; margin-bottom:12px; }
+  .code { font-size:12px; color:var(--muted); letter-spacing:.08em; }
+  .name { font-size:15px; font-weight:600; margin:2px 0 8px; }
+  dl { display:grid; grid-template-columns:78px 1fr; gap:3px 8px; margin:0; font-size:12px; }
+  dt { color:var(--muted); } dd { margin:0; }
+  .tbd { background:var(--pending); padding:0 4px; }
+  .foot { margin-top:26px; font-size:11px; color:var(--muted); border-top:1px solid var(--line); padding-top:8px; display:flex; justify-content:space-between; }
+  .intro p { max-width:640px; line-height:1.9; font-size:14px; }
+  .terms { display:grid; grid-template-columns:repeat(2,1fr); gap:10px 24px; max-width:700px; font-size:13px; }
+  .terms div { border-bottom:1px solid var(--line); padding:6px 0; display:flex; justify-content:space-between; }
+  .note { font-size:11px; color:#B00020; margin-top:18px; }
+  @media (max-width:760px){ .grid{grid-template-columns:1fr 1fr} .top{flex-direction:column;gap:6px} }
+  @media print { .page{padding:0; max-width:none} body{-webkit-print-color-adjust:exact; print-color-adjust:exact} }
+</style>
+</head>
+<body>
+
+<section class="page intro">
+  <div class="top"><span class="brand">LOVE MY NEIGHBORHOOD®</span><span class="cat">LINESHEET</span></div>
+  <p>香川から生まれた“ご近所愛”のコミュニティブランド。<br>
+  地元への愛着や、隣人とのつながりを、日常のアイテムで表現します。<br>
+  売上の一部・雑貨類の売上全額は、毎年、香川県・地域自治体へ寄付しています。</p>
+  <h3 style="margin-top:32px;font-weight:600">お取引条件</h3>
+  <div class="terms">
+    <div><span>卸価格・掛率</span><span class="tbd">要確認</span></div>
+    <div><span>最低発注ロット</span><span class="tbd">要確認</span></div>
+    <div><span>納期の目安</span><span class="tbd">要確認</span></div>
+    <div><span>支払条件</span><span class="tbd">要確認</span></div>
+    <div><span>POP UP出店</span><span>個別にご相談可能</span></div>
+    <div><span>サンプル貸出</span><span>基本的に無償</span></div>
+  </div>
+  <p class="note">※ 品番・サイズ・カラー・納期・卸価格は仮置きです。ブランド提供資料に合わせて黄色の箇所を差し替えてください。</p>
+  <div class="foot"><span>Brand Connector：須藤 慎太郎</span><span>LOVE MY NEIGHBORHOOD LINESHEET page 1 of 3</span></div>
+</section>
+
+<section class="page">
+  <div class="top"><span class="brand">LOVE MY NEIGHBORHOOD®</span><span class="cat">APPAREL</span></div>
+  <div class="grid">
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-T01</div><div class="name">Basic Half Sleeve T<br><span style="font-weight:400;font-size:12px">ベーシック ハーフスリーブT</span></div>
+      <dl><dt>price</dt><dd>¥5,500（税込・参考上代）</dd><dt>wholesale</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>size</dt><dd><span class="tbd">S / M / L / XL</span></dd><dt>color</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>delivery</dt><dd><span class="tbd">要確認</span></dd><dt>material</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-T02</div><div class="name">Basic Long Sleeve T<br><span style="font-weight:400;font-size:12px">ベーシック ロングスリーブT</span></div>
+      <dl><dt>price</dt><dd>¥6,600（税込・参考上代）</dd><dt>wholesale</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>size</dt><dd><span class="tbd">S / M / L / XL</span></dd><dt>color</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>delivery</dt><dd><span class="tbd">要確認</span></dd><dt>material</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-S01</div><div class="name">Basic Sweat<br><span style="font-weight:400;font-size:12px">ベーシック スウェット</span></div>
+      <dl><dt>price</dt><dd>¥13,200（税込・参考上代）</dd><dt>wholesale</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>size</dt><dd><span class="tbd">S / M / L / XL</span></dd><dt>color</dt><dd><span class="tbd">要確認</span></dd>
+      <dt>delivery</dt><dd><span class="tbd">要確認</span></dd><dt>material</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+  </div>
+  <div class="foot"><span></span><span>LOVE MY NEIGHBORHOOD LINESHEET page 2 of 3</span></div>
+</section>
+
+<section class="page">
+  <div class="top"><span class="brand">LOVE MY NEIGHBORHOOD®</span><span class="cat">GOODS &amp; COLLABORATION</span></div>
+  <div class="grid">
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-G01</div><div class="name">Key Charm<br><span style="font-weight:400;font-size:12px">キーチャーム</span></div>
+      <dl><dt>price</dt><dd>¥550〜¥1,320（税込）</dd><dt>size</dt><dd>F</dd><dt>color</dt><dd><span class="tbd">要確認</span></dd><dt>delivery</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-G02</div><div class="name">Pin Badge<br><span style="font-weight:400;font-size:12px">ピンバッジ</span></div>
+      <dl><dt>price</dt><dd>¥550〜¥1,320（税込）</dd><dt>size</dt><dd>F</dd><dt>color</dt><dd><span class="tbd">要確認</span></dd><dt>delivery</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-G03</div><div class="name">Cushion Cover<br><span style="font-weight:400;font-size:12px">クッションカバー</span></div>
+      <dl><dt>price</dt><dd>¥6,600（税込）</dd><dt>size</dt><dd><span class="tbd">要確認</span></dd><dt>color</dt><dd><span class="tbd">要確認</span></dd><dt>delivery</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-G04</div><div class="name">Framed Poster<br><span style="font-weight:400;font-size:12px">ポスター（フレーム付）</span></div>
+      <dl><dt>price</dt><dd>¥3,850〜¥7,700（税込）</dd><dt>size</dt><dd><span class="tbd">要確認</span></dd><dt>delivery</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+    <div class="item"><div class="photo">PHOTO</div>
+      <div class="code">LMN-C01</div><div class="name">Local Collaboration<br><span style="font-weight:400;font-size:12px">地域コラボアイテム（丸亀うちわ 等）</span></div>
+      <dl><dt>price</dt><dd>¥3,740〜（税込）</dd><dt>delivery</dt><dd><span class="tbd">要確認</span></dd></dl></div>
+  </div>
+  <div class="foot"><span></span><span>LOVE MY NEIGHBORHOOD LINESHEET page 3 of 3</span></div>
+</section>
+
+</body>
+</html>
